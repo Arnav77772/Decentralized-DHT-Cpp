@@ -1,0 +1,33 @@
+#ifndef NODE_H
+#define NODE_H
+
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "HashTable.h"
+
+
+class Node
+{
+public:
+    explicit Node(int id);
+
+    int getID() const;
+
+    bool store(const std::string& key, const std::string& value);   
+    bool fetch(const std::string& key, std::string& valueOut) const;
+    bool erase(const std::string& key);
+
+    std::size_t dataCount() const;
+    std::vector<std::pair<std::string, std::string>> entries() const;
+
+    void displayData() const;
+
+private:
+    int nodeID;
+    HashTable localTable;
+};
+
+#endif
