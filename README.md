@@ -89,6 +89,7 @@ When a user provides a key-value pair:
 
 ```text
 Key → Hash Function → DHT Routing → Responsible Node → Storagen
+```
 
 ## 6. Updates Made
 
