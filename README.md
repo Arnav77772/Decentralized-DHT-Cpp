@@ -95,8 +95,14 @@ Key → Hash Function → DHT Routing → Responsible Node → Storagen
 
 There are changes made in the proposed system and they are as follows:
 
+```text
 Garima : Created the main.cpp file,updated the code base for main.cpp,created node.h,DHT.h,Hashtable.h
+```
 
+```text
 Yash : Updated the readMe intially and moving forward updated the Node.h and Hashtable.h
+```
 
+```text
 Arnav : Will work on the testing and debugging of the codes.
+```
