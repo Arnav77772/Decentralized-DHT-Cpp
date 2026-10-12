@@ -89,3 +89,13 @@ When a user provides a key-value pair:
 
 ```text
 Key → Hash Function → DHT Routing → Responsible Node → Storagen
+
+## 6. Updates Made
+
+There are changes made in the proposed system and they are as follows:
+
+Garima : Created the main.cpp file,updated the code base for main.cpp,created node.h,DHT.h,Hashtable.h
+
+Yash : Updated the readMe intially and moving forward updated the Node.h and Hashtable.h
+
+Arnav : Will work on the testing and debugging of the codes.
