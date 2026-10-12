@@ -104,5 +104,5 @@ Yash : Updated the readMe intially and moving forward updated the Node.h and Has
 ```
 
 ```text
-Arnav : Implemented the core DHT ring logic, node join/leave operations, key hashing, data redistribution, and tested the code.
+Arnav: Implemented the core DHT ring logic in `DHT.cpp`, node-level operations in `Node.cpp`, key hashing, node join/leave handling, data redistribution, and tested the working prototype.
 ```
