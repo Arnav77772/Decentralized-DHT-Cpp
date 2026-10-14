@@ -2,12 +2,13 @@
 #include "Node.h"
 #include <iostream>
 
-Node::Node(int id) : nodeID(id) {}
+Node::Node(NodeID id) : nodeID(id) {}
 
-int Node::getID() const
+NodeID Node::getID() const
 {
     return nodeID;
 }
+
 
 bool Node::store(const std::string& key, const std::string& value)
 {
