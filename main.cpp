@@ -1,10 +1,29 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <cstdint>
 
 #include "DHT.h"
 
 using namespace std;
+
+NodeID readNodeID(const std::string& prompt)
+{
+    std::string input;
+
+    std::cout << prompt;
+    std::cin >> input;
+
+    try
+    {
+        return static_cast<NodeID>(std::stoull(input));
+    }
+    catch (...)
+    {
+        std::cout << "Invalid node ID.\n";
+        return 0;
+    }
+}
 
 int readInt(const string& prompt)
 {
@@ -63,11 +82,11 @@ int main()
         switch (choice)
         {
         case 1:
-            dht.addNode(readInt("Enter Node ID (0-99): "));
+            dht.addNode(readNodeID("Enter 64-bit Node ID "));
             break;
 
         case 2:
-            dht.removeNode(readInt("Enter Node ID to remove: "));
+            dht.removeNode(readNodeID("Enter Node ID to remove: "));
             break;
 
         case 3:
