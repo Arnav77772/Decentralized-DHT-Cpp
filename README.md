@@ -104,5 +104,9 @@ Yash : Updated the readMe intially and moving forward updated the Node.h and Has
 ```
 
 ```text
-Arnav: Implemented the core DHT ring logic in `DHT.cpp`, node-level operations in `Node.cpp`, key hashing, node join/leave handling, data redistribution, and tested the working prototype.
+Arnav : Implemented the core DHT ring logic int 'DHT.cpp',node-level operations in 'Node.cpp',key hashing, data redistribution, and tested the working prototype.
 ```
+## 7. Changes planning to be made 
+Fault tolerence : This feature of detecting if the node has failed has been introduced to the code yet and it is to be added.
+
+Multithreading : Helps run the node in its own std::thread.
