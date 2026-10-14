@@ -1,0 +1,253 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decentralized DHT Dashboard</title>
+<style>
+:root {
+  --bg:#080f1b; --panel:#101c2b; --line:#22354b;
+  --text:#e8f0fc; --muted:#94a9c4; --blue:#39a9ff;
+  --green:#25dba0; --red:#ff687b; --purple:#b48aff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:Segoe UI,Arial,sans-serif}
+header{padding:22px 28px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;gap:16px}
+h1{font-size:23px;margin:0}
+.subtitle{color:var(--muted);font-size:13px;margin-top:5px}
+.status{color:var(--green);font-size:13px}
+main{padding:24px;max-width:1500px;margin:auto}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+.panel,.metric{background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;padding:18px;min-width:0}
+.metric .label{font-size:13px;color:var(--muted)}
+.metric .number{font-size:29px;font-weight:700;margin:9px 0}
+.layout{display:grid;grid-template-columns:1fr 1.5fr;gap:16px;margin-top:16px}
+h2{font-size:17px;margin:0 0 17px}
+.ring-wrap{display:grid;place-items:center;min-height:330px}
+.ring{width:245px;height:245px;border:3px solid #328fe5;
+  border-radius:50%;position:relative;
+  background:radial-gradient(circle,#12253a 0%,#0a1422 68%)}
+.ring:before{content:"HASH RING";position:absolute;inset:0;
+  display:grid;place-items:center;color:var(--muted);font-weight:bold}
+.dot{position:absolute;width:15px;height:15px;border-radius:50%;
+  transform:translate(-50%,-50%);border:2px solid #fff}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:12px 9px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500}
+.pill{padding:4px 8px;border-radius:20px;background:#123b32;color:var(--green)}
+button{background:#1768d5;color:white;border:0;padding:10px 13px;
+  border-radius:7px;cursor:pointer;font-weight:600}
+button:hover{filter:brightness(1.15)}
+button.danger{background:#57232d;color:#ffb5bf}
+button.secondary{background:#24364b}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px}
+input,select{background:#091422;color:var(--text);border:1px solid var(--line);
+  padding:10px;border-radius:7px;min-width:0}
+input{flex:1;min-width:120px}
+.forms{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.form-row{display:flex;gap:8px;margin-bottom:9px}
+.form-row>*{width:100%}
+.logs{max-height:260px;overflow:auto}
+.log{padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.log small{color:var(--muted);display:block;margin-bottom:4px}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:22px}
+@media(max-width:850px){
+ .metrics{grid-template-columns:repeat(2,1fr)}
+ .layout,.forms{grid-template-columns:1fr}
+ header{align-items:flex-start;flex-direction:column}
+ main{padding:14px}
+}
+@media(max-width:450px){.metrics{grid-template-columns:1fr 1fr}
+ .metric{padding:12px}.metric .number{font-size:23px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>⬡ Decentralized DHT</h1>
+    <div class="subtitle">Distributed Hash Table · Live Dashboard Prototype</div>
+  </div>
+  <div class="status">● UI Running · Simulation Mode</div>
+</header>
+
+<main>
+  <section class="metrics">
+    <div class="metric"><div class="label">Active Nodes</div>
+      <div class="number" id="nodeCount">3</div><span class="status">● Prototype</span></div>
+    <div class="metric"><div class="label">Keys Stored</div>
+      <div class="number" id="keyCount">0</div><span class="subtitle">Local test data</span></div>
+    <div class="metric"><div class="label">Total Requests</div>
+      <div class="number" id="requestCount">0</div><span class="subtitle">Since page opened</span></div>
+    <div class="metric"><div class="label">Operations</div>
+      <div class="number" id="successCount">0</div><span class="subtitle">Successful actions</span></div>
+  </section>
+
+  <section class="layout">
+    <div class="panel">
+      <h2>Hash Ring Visualization</h2>
+      <div class="ring-wrap"><div class="ring" id="ring"></div></div>
+      <div class="subtitle" id="ringInfo">Ring positions: 0–99 · Illustrative UI</div>
+    </div>
+    <div class="panel">
+      <h2>Nodes in Cluster <button style="float:right" onclick="addNode()">+ Add Node</button></h2>
+      <div class="table-wrap">
+        <table><thead><tr><th>Node ID</th><th>Hash ID</th>
+          <th>Status</th><th>Keys</th><th>Action</th></tr></thead>
+          <tbody id="nodes"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="forms">
+    <div class="panel">
+      <h2>Key-Value Operations</h2>
+      <div class="form-row"><input id="key" placeholder="Key e.g. user101">
+        <input id="value" placeholder="Value e.g. Arnav"></div>
+      <div class="controls">
+        <button onclick="putKey()">PUT / Store</button>
+        <button class="secondary" onclick="getKey()">GET / Retrieve</button>
+        <button class="danger" onclick="deleteKey()">DELETE</button>
+      </div>
+      <div id="result" class="subtitle">Enter a key and value to begin.</div>
+    </div>
+    <div class="panel">
+      <h2>Stored Data</h2>
+      <div class="table-wrap">
+        <table><thead><tr><th>Key</th><th>Value</th><th>Node</th></tr></thead>
+          <tbody id="data"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:16px">
+    <h2>Activity Logs <button class="secondary" style="float:right" onclick="clearLogs()">Clear</button></h2>
+    <div id="logs" class="logs"></div>
+  </section>
+</main>
+<footer>Frontend prototype · Data resets when this page is refreshed · Not connected to C++ networking yet</footer>
+
+<script>
+const nodes = [
+  {id:1, hash:12, active:true},
+  {id:2, hash:45, active:true},
+  {id:3, hash:78, active:true}
+];
+const store = new Map();
+let requests = 0, successes = 0, nextID = 4;
+
+function hashKey(key) {
+  let hash = 5381;
+  for (const ch of key) hash = (Math.imul(hash,33) + ch.charCodeAt(0)) >>> 0;
+  return hash % 100;
+}
+function ownerFor(key) {
+  const active = nodes.filter(n => n.active).sort((a,b)=>a.hash-b.hash);
+  if (!active.length) return null;
+  const h = hashKey(key);
+  return active.find(n => n.hash >= h) || active[0];
+}
+function log(message) {
+  const row = document.createElement('div');
+  row.className = 'log';
+  const time = document.createElement('small');
+  time.textContent = new Date().toLocaleTimeString();
+  const text = document.createElement('span');
+  text.textContent = message;
+  row.append(time,text);
+  document.getElementById('logs').prepend(row);
+}
+function render() {
+  document.getElementById('nodeCount').textContent = nodes.filter(n=>n.active).length;
+  document.getElementById('keyCount').textContent = store.size;
+  document.getElementById('requestCount').textContent = requests;
+  document.getElementById('successCount').textContent = successes;
+
+  const tbody = document.getElementById('nodes');
+  tbody.replaceChildren();
+  nodes.forEach(n=>{
+    const tr = document.createElement('tr');
+    [ 'Node '+n.id, n.hash, n.active?'Active':'Offline',
+      [...store.keys()].filter(k=>ownerFor(k)?.id===n.id).length
+    ].forEach((v,i)=>{
+      const td=document.createElement('td'); td.textContent=v;
+      if(i===2) td.innerHTML=n.active?'<span class="pill">Active</span>':'<span style="color:#ff687b">Offline</span>';
+      tr.appendChild(td);
+    });
+    const action=document.createElement('td');
+    const btn=document.createElement('button');
+    btn.className=n.active?'danger':'secondary';
+    btn.textContent=n.active?'Stop':'Start';
+    btn.onclick=()=>{n.active=!n.active;log('Node '+n.id+' '+(n.active?'started':'stopped')+' (simulation)');render();};
+    action.appendChild(btn);tr.appendChild(action);tbody.appendChild(tr);
+  });
+
+  const ring=document.getElementById('ring');
+  ring.querySelectorAll('.dot').forEach(e=>e.remove());
+  nodes.forEach((n,i)=>{
+    const angle=(n.hash/100)*Math.PI*2-Math.PI/2;
+    const dot=document.createElement('div');dot.className='dot';
+    dot.style.left=(50+46*Math.cos(angle))+'%';
+    dot.style.top=(50+46*Math.sin(angle))+'%';
+    dot.style.background=n.active?'#25dba0':'#ff687b';
+    dot.title='Node '+n.id+' · position '+n.hash;
+    ring.appendChild(dot);
+  });
+
+  const data=document.getElementById('data');data.replaceChildren();
+  for(const [key,value] of store){
+    const tr=document.createElement('tr');
+    [key,value,ownerFor(key)?.id ?? 'No active node'].forEach(v=>{
+      const td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+    });
+    data.appendChild(tr);
+  }
+}
+function putKey() {
+  requests++;
+  const key=document.getElementById('key').value.trim();
+  const value=document.getElementById('value').value;
+  if(!key || !value){result('Please enter both key and value.');log('PUT failed: missing key/value');render();return;}
+  const node=ownerFor(key);
+  if(!node){result('No active nodes available.');log('PUT failed: no active nodes');render();return;}
+  store.set(key,value);successes++;
+  result('Stored key "'+key+'" on Node '+node.id+' (simulation).');
+  log('PUT · '+key+' stored on Node '+node.id);render();
+}
+function getKey() {
+  requests++;
+  const key=document.getElementById('key').value.trim();
+  if(!key){result('Enter a key to retrieve.');render();return;}
+  const node=ownerFor(key);
+  if(store.has(key) && node){
+    successes++;result('Value: '+store.get(key)+' · Node '+node.id);
+    log('GET · '+key+' retrieved successfully');
+  } else {result('Key not found or no active node available.');log('GET · '+key+' not found');}
+  render();
+}
+function deleteKey() {
+  requests++;
+  const key=document.getElementById('key').value.trim();
+  if(store.delete(key)){successes++;result('Deleted key: '+key);log('DELETE · '+key+' deleted');}
+  else {result('Key not found: '+key);log('DELETE · '+key+' not found');}
+  render();
+}
+function addNode() {
+  const used=new Set(nodes.map(n=>n.hash));
+  let hash=Math.floor(Math.random()*100);
+  while(used.has(hash)) hash=(hash+1)%100;
+  const node={id:nextID++,hash,active:true};nodes.push(node);
+  log('Node '+node.id+' joined at hash '+hash+' (simulation)');
+  render();
+}
+function result(message){document.getElementById('result').textContent=message;}
+function clearLogs(){document.getElementById('logs').replaceChildren();}
+render();
+log('Dashboard initialized in simulation mode');
+</script>
+</body>
+</html>
