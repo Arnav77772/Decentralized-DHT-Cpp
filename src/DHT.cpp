@@ -8,8 +8,7 @@ NodeID DHT::hashKey(const std::string& key)
     return hashString(key);
 }
 
-DHT::RingMap::const_iterator DHT::successorOf(int position) const
-{
+DHT::RingMap::const_iterator DHT::successorOf(NodeID position) const{
     if (ring.empty())
         return ring.end();
 
@@ -21,7 +20,7 @@ DHT::RingMap::const_iterator DHT::successorOf(int position) const
     return it;
 }
 
-DHT::RingMap::const_iterator DHT::predecessorOf(int nodeID) const
+DHT::RingMap::const_iterator DHT::predecessorOf(NodeID nodeID) const
 {
     auto it = ring.find(nodeID);
 
@@ -35,7 +34,7 @@ DHT::RingMap::const_iterator DHT::predecessorOf(int nodeID) const
     return it;
 }
 
-bool DHT::inRange(int h, int from, int to)
+bool DHT::inRange(NodeID h, NodeID from, NodeID to)
 {
     if (from < to)
         return h > from && h <= to;
@@ -46,14 +45,8 @@ bool DHT::inRange(int h, int from, int to)
     return true;
 }
 
-bool DHT::addNode(int nodeID)
+bool DHT::addNode(NodeID nodeID)
 {
-    if (nodeID < 0 || nodeID >= RING_SIZE)
-    {
-        std::cout << "Invalid node ID. Use 0-99.\n";
-        return false;
-    }
-
     if (ring.find(nodeID) != ring.end())
     {
         std::cout << "Node already exists.\n";
@@ -74,25 +67,23 @@ bool DHT::addNode(int nodeID)
     auto oldSuccessor = successorOf(nodeID);
     auto predecessor = predecessorOf(oldSuccessor->first);
 
-    // Save the IDs before inserting the new node.
-    int successorID = oldSuccessor->first;
-    int predecessorID = predecessor->first;
+    NodeID successorID = oldSuccessor->first;
+    NodeID predecessorID = predecessor->first;
 
     ring.emplace(
         nodeID,
         std::unique_ptr<Node>(new Node(nodeID))
     );
 
-    // Move only keys that now belong to the new node.
     std::vector<std::pair<std::string, std::string>> oldEntries =
         ring.at(successorID)->entries();
 
     std::size_t moved = 0;
 
     for (const auto& entry : oldEntries)
-    {
-        int position = hashKey(entry.first);
-
+        {
+            NodeID position = hashKey(entry.first);
+            
         if (inRange(position, predecessorID, nodeID))
         {
             ring.at(successorID)->erase(entry.first);
@@ -107,7 +98,7 @@ bool DHT::addNode(int nodeID)
     return true;
 }
 
-bool DHT::removeNode(int nodeID)
+bool DHT::removeNode(NodeID nodeID)
 {
     auto it = ring.find(nodeID);
 
@@ -123,13 +114,11 @@ bool DHT::removeNode(int nodeID)
         return false;
     }
 
-    // Preserve the departing node's data before deleting it.
     std::vector<std::pair<std::string, std::string>> oldEntries =
         it->second->entries();
 
     ring.erase(it);
 
-    // Redistribute its keys to their new responsible nodes.
     for (const auto& entry : oldEntries)
     {
         auto destination = successorOf(hashKey(entry.first));
