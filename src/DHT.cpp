@@ -3,16 +3,9 @@
 
 #include <iostream>
 
-int DHT::hashKey(const std::string& key)
+NodeID DHT::hashKey(const std::string& key)
 {
-    unsigned int hash = 5381;
-
-    for (unsigned char c : key)
-    {
-        hash = hash * 33 + c;
-    }
-
-    return static_cast<int>(hash % RING_SIZE);
+    return hashString(key);
 }
 
 DHT::RingMap::const_iterator DHT::successorOf(int position) const
