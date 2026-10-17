@@ -44,7 +44,7 @@ bool DHT::inRange(NodeID h, NodeID from, NodeID to)
 
     return true;
 }
-
+//addNode
 bool DHT::addNode(NodeID nodeID)
 {
     if (ring.find(nodeID) != ring.end())
@@ -97,7 +97,7 @@ bool DHT::addNode(NodeID nodeID)
 
     return true;
 }
-
+//remove
 bool DHT::removeNode(NodeID nodeID)
 {
     auto it = ring.find(nodeID);
@@ -132,7 +132,7 @@ bool DHT::removeNode(NodeID nodeID)
 
     return true;
 }
-
+//put
 void DHT::put(const std::string& key, const std::string& value)
 {
     auto node = successorOf(hashKey(key));
@@ -148,7 +148,7 @@ void DHT::put(const std::string& key, const std::string& value)
     std::cout << (inserted ? "Key inserted" : "Key updated")
               << " on node " << node->first << ".\n";
 }
-
+//get
 void DHT::get(const std::string& key) const
 {
     auto node = successorOf(hashKey(key));
@@ -172,7 +172,7 @@ void DHT::get(const std::string& key) const
         std::cout << "Key not found: " << key << '\n';
     }
 }
-
+//remove
 void DHT::remove(const std::string& key)
 {
     auto node = successorOf(hashKey(key));
@@ -188,7 +188,7 @@ void DHT::remove(const std::string& key)
     else
         std::cout << "Key not found: " << key << '\n';
 }
-
+//responsible nodes
 void DHT::showResponsibleNode(const std::string& key) const
 {
     auto node = successorOf(hashKey(key));

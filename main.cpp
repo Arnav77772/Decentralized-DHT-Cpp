@@ -2,6 +2,7 @@
 #include <limits>
 #include <string>
 #include <cstdint>
+#include "Hashing.h"
 
 #include "DHT.h"
 
@@ -69,9 +70,30 @@ void printMenu()
 }
 
 
+
+
 int main()
 {
     DHT dht;
+
+    string ip;
+    unsigned int port;
+
+    cout << "Enter this computer's IP address: ";
+    cin >> ip;
+
+    cout << "Enter port (1024-65535): ";
+    if (!(cin >> port) || port < 1024 || port > 65535)
+    {
+        cout << "Invalid port number.\n";
+        return 1;
+    }
+
+    NodeID nodeID = hashNode(
+        ip, static_cast<unsigned short>(port)
+    );
+
+    cout << "Generated 64-bit Node ID: " << nodeID << '\n';
 
     while (true)
     {
@@ -82,12 +104,21 @@ int main()
         switch (choice)
         {
         case 1:
-            dht.addNode(readNodeID("Enter 64-bit Node ID "));
+        {
+            if (dht.addNode(nodeID))
+                cout << "Node joined successfully.\n";
+            else
+                cout << "Node already exists or could not join.\n";
+
             break;
+        }
 
         case 2:
-            dht.removeNode(readNodeID("Enter Node ID to remove: "));
+        {
+            NodeID id = readNodeID("Enter Node ID to remove: ");
+            dht.removeNode(id);
             break;
+        }
 
         case 3:
             dht.displayNodes();
