@@ -104,7 +104,7 @@ Yash : Updated the readMe intially and moving forward updated the header files o
 ```
 
 ```text
-Arnav : Performed debugging and tested the working prototype.
+Arnav : ImplementedNetwork.cppanditsheaderfile, testinganddebugging.And performed debugging and tested the working prototype.
 ```
 ## 7. Changes planning to be made 
 Fault tolerence : This feature of detecting if the node has failed has been introduced to the code yet and it is to be added.
