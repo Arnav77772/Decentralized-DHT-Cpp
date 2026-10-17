@@ -34,7 +34,7 @@ public:
 
 private:
     RingMap ring;
-
+mutable std::mutex ringMutex;
     RingMap::const_iterator successorOf(NodeID position) const;
     RingMap::const_iterator predecessorOf(NodeID nodeID) const;
 
