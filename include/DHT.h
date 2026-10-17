@@ -5,6 +5,8 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <cstdint>
+#include <mutex>
 
 #include "Hashing.h"
 #include "Node.h"
