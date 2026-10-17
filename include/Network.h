@@ -21,23 +21,17 @@ public:
     Network();
     ~Network();
 
-    // Start listening for incoming TCP connections.
     bool startServer(int port);
 
-    // Accept one incoming client connection.
     bool acceptClient();
 
-    // Connect to a remote server.
     bool connectToServer(const std::string& ip, int port);
 
-    // Send and receive newline-terminated messages.
     bool sendMessage(const std::string& message);
     std::string receiveMessage();
 
-    // Close sockets safely.
     void closeConnection();
 
-    // Return true when a client/server connection exists.
     bool isConnected() const;
 
 private:
