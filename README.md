@@ -100,13 +100,16 @@ Garima : Created the main.cpp file,updated the code base for main.cpp,created no
 ```
 
 ```text
-Yash : Updated the readMe intially and moving forward updated the Node.h and Hashtable.h
+Yash : Updated the readMe intially and moving forward updated the header files of Node and HashTable.
 ```
 
 ```text
-Arnav : Implemented the core DHT ring logic int 'DHT.cpp',node-level operations in 'Node.cpp',key hashing, data redistribution, and tested the working prototype.
+Arnav : Performed debugging and tested the working prototype.
 ```
 ## 7. Changes planning to be made 
 Fault tolerence : This feature of detecting if the node has failed has been introduced to the code yet and it is to be added.
 
 Multithreading : Helps run the node in its own std::thread.
+
+## 8. Update 
+Fault tolerence and multithreading added, 2-Bit node changed to 64-Bit node and networking.
