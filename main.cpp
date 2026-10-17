@@ -2,6 +2,7 @@
 #include <limits>
 #include <string>
 #include <cstdint>
+#include "Network.h"
 #include "Hashing.h"
 
 #include "DHT.h"
@@ -95,6 +96,14 @@ int main()
 
     cout << "Generated 64-bit Node ID: " << nodeID << '\n';
 
+    Network network;
+
+    if (!network.startServer(static_cast<int>(port)))
+    {
+        cerr << "Could not start network server.\n";
+        return 1;
+    }
+
     while (true)
     {
         printMenu();
@@ -149,6 +158,7 @@ int main()
             break;
 
         case 9:
+            network.closeConnection();
             cout << "Program ended.\n";
             return 0;
 
