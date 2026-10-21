@@ -4,7 +4,6 @@
 #include <cstdint>
 #include "Network.h"
 #include "Hashing.h"
-
 #include "DHT.h"
 
 using namespace std;
