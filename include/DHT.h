@@ -1,6 +1,7 @@
 #ifndef DHT_H
 #define DHT_H
-
+#include <vector>
+#include <tuple>
 #include <cstddef>
 #include <map>
 #include <memory>
@@ -19,7 +20,17 @@ public:
     DHT() = default;
 
     static NodeID hashKey(const std::string& key);
+    bool getValue(
+    const std::string& key,
+    std::string& valueOut,
+    NodeID& ownerOut
+) const;
 
+std::vector<std::pair<NodeID, std::size_t>>
+nodesSnapshot() const;
+
+std::vector<std::tuple<std::string, std::string, NodeID>>
+dataSnapshot() const;
     bool addNode(NodeID nodeID);
     bool removeNode(NodeID nodeID);
 

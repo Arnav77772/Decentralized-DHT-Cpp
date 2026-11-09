@@ -4,250 +4,1158 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Decentralized DHT Dashboard</title>
+<title>Decentralized DHT | Live Dashboard</title>
+
 <style>
 :root {
-  --bg:#080f1b; --panel:#101c2b; --line:#22354b;
-  --text:#e8f0fc; --muted:#94a9c4; --blue:#39a9ff;
-  --green:#25dba0; --red:#ff687b; --purple:#b48aff;
+    --bg: #08111f;
+    --panel: #101d2e;
+    --line: #23364d;
+    --text: #eaf2ff;
+    --muted: #9aadc5;
+    --blue: #55b5ff;
+    --green: #36d6a0;
+    --red: #ff7185;
+    --amber: #ffc46b;
 }
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);
-  font-family:Segoe UI,Arial,sans-serif}
-header{padding:22px 28px;border-bottom:1px solid var(--line);
-  display:flex;justify-content:space-between;align-items:center;gap:16px}
-h1{font-size:23px;margin:0}
-.subtitle{color:var(--muted);font-size:13px;margin-top:5px}
-.status{color:var(--green);font-size:13px}
-main{padding:24px;max-width:1500px;margin:auto}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
-.panel,.metric{background:var(--panel);border:1px solid var(--line);
-  border-radius:13px;padding:18px;min-width:0}
-.metric .label{font-size:13px;color:var(--muted)}
-.metric .number{font-size:29px;font-weight:700;margin:9px 0}
-.layout{display:grid;grid-template-columns:1fr 1.5fr;gap:16px;margin-top:16px}
-h2{font-size:17px;margin:0 0 17px}
-.ring-wrap{display:grid;place-items:center;min-height:330px}
-.ring{width:245px;height:245px;border:3px solid #328fe5;
-  border-radius:50%;position:relative;
-  background:radial-gradient(circle,#12253a 0%,#0a1422 68%)}
-.ring:before{content:"HASH RING";position:absolute;inset:0;
-  display:grid;place-items:center;color:var(--muted);font-weight:bold}
-.dot{position:absolute;width:15px;height:15px;border-radius:50%;
-  transform:translate(-50%,-50%);border:2px solid #fff}
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:12px 9px;text-align:left;border-bottom:1px solid var(--line)}
-th{color:var(--muted);font-weight:500}
-.pill{padding:4px 8px;border-radius:20px;background:#123b32;color:var(--green)}
-button{background:#1768d5;color:white;border:0;padding:10px 13px;
-  border-radius:7px;cursor:pointer;font-weight:600}
-button:hover{filter:brightness(1.15)}
-button.danger{background:#57232d;color:#ffb5bf}
-button.secondary{background:#24364b}
-.controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px}
-input,select{background:#091422;color:var(--text);border:1px solid var(--line);
-  padding:10px;border-radius:7px;min-width:0}
-input{flex:1;min-width:120px}
-.forms{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
-.form-row{display:flex;gap:8px;margin-bottom:9px}
-.form-row>*{width:100%}
-.logs{max-height:260px;overflow:auto}
-.log{padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
-.log small{color:var(--muted);display:block;margin-bottom:4px}
-footer{color:var(--muted);font-size:12px;text-align:center;padding:22px}
-@media(max-width:850px){
- .metrics{grid-template-columns:repeat(2,1fr)}
- .layout,.forms{grid-template-columns:1fr}
- header{align-items:flex-start;flex-direction:column}
- main{padding:14px}
+
+* {
+    box-sizing: border-box;
 }
-@media(max-width:450px){.metrics{grid-template-columns:1fr 1fr}
- .metric{padding:12px}.metric .number{font-size:23px}}
+
+body {
+    margin: 0;
+    background: radial-gradient(circle at 12% 0%, #132944 0, transparent 30%), var(--bg);
+    color: var(--text);
+    font: 14px/1.5 "Segoe UI", Arial, sans-serif;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 22px clamp(16px, 4vw, 48px);
+    border-bottom: 1px solid var(--line);
+    background: #08111fd9;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    backdrop-filter: blur(12px);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    width: 42px;
+    height: 42px;
+    border: 1px solid #3278b8;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    color: var(--blue);
+    font-size: 24px;
+    background: #102943;
+}
+
+h1 {
+    font-size: 22px;
+    margin: 0;
+}
+
+.subtitle, .muted {
+    color: var(--muted);
+}
+
+.subtitle {
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+.connection {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 650;
+    font-size: 13px;
+}
+
+.led {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--amber);
+}
+
+.connection.online {
+    color: var(--green);
+}
+
+.connection.online .led {
+    background: var(--green);
+    box-shadow: 0 0 12px var(--green);
+}
+
+.connection.offline {
+    color: var(--red);
+}
+
+.connection.offline .led {
+    background: var(--red);
+}
+
+main {
+    max-width: 1500px;
+    margin: auto;
+    padding: 24px clamp(14px, 3vw, 38px) 34px;
+}
+
+.topline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.topline p {
+    color: var(--muted);
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.metric, .panel {
+    background: linear-gradient(145deg, #122238, #0e1a2a);
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    box-shadow: 0 12px 30px #0003;
+}
+
+.metric {
+    padding: 17px 19px;
+}
+
+.metric-label {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.metric-value {
+    font-size: 30px;
+    font-weight: 750;
+    margin: 6px 0 1px;
+}
+
+.metric-note {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: minmax(280px, .85fr) minmax(0, 1.5fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.panel {
+    padding: 18px;
+    min-width: 0;
+}
+
+.panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+h2 {
+    font-size: 15px;
+    margin: 0;
+}
+
+.tag {
+    font-size: 11px;
+    color: var(--blue);
+    background: #102c47;
+    border: 1px solid #214d72;
+    border-radius: 30px;
+    padding: 4px 9px;
+}
+
+.ring-area {
+    min-height: 280px;
+    display: grid;
+    place-items: center;
+}
+
+.ring {
+    width: min(245px, 70vw);
+    aspect-ratio: 1;
+    border: 2px solid #2d80c4;
+    border-radius: 50%;
+    position: relative;
+    background: radial-gradient(circle, #132b45 0, #0b1726 68%);
+    box-shadow: inset 0 0 35px #1c5b8a33;
+}
+
+.ring:before {
+    content: "64-BIT HASH RING";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #9eb6d1;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 1px;
+}
+
+.ring:after {
+    content: "";
+    position: absolute;
+    inset: 17%;
+    border: 1px dashed #35516d;
+    border-radius: 50%;
+}
+
+.dot {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--green);
+    z-index: 2;
+    box-shadow: 0 0 12px #36d6a0aa;
+}
+
+.ring-legend {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 5px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 420px;
+    font-size: 12px;
+}
+
+th, td {
+    text-align: left;
+    padding: 11px 9px;
+    border-bottom: 1px solid var(--line);
+    overflow-wrap: anywhere;
+}
+
+th {
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 30px;
+    background: #12382f;
+    color: var(--green);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.empty {
+    text-align: center !important;
+    color: var(--muted);
+    padding: 24px 10px !important;
+}
+
+button {
+    border: 1px solid transparent;
+    background: #176fc1;
+    color: white;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-weight: 650;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+button:hover {
+    filter: brightness(1.15);
+}
+
+button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #1a2d43;
+    border-color: #30465f;
+    color: #dceaff;
+}
+
+.btn-danger {
+    background: #512633;
+    border-color: #75404d;
+    color: #ffc0c9;
+}
+
+.btn-small {
+    padding: 6px 9px;
+    font-size: 11px;
+}
+
+.forms {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.field {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.field input {
+    width: 100%;
+    min-width: 0;
+}
+
+input {
+    background: #091522;
+    border: 1px solid #2a4059;
+    border-radius: 8px;
+    color: var(--text);
+    padding: 11px 12px;
+    font: inherit;
+    font-size: 12px;
+    outline: none;
+}
+
+input:focus {
+    border-color: var(--blue);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.result {
+    margin-top: 13px;
+    padding: 10px 12px;
+    border: 1px solid #263b53;
+    border-radius: 8px;
+    background: #0a1726;
+    color: var(--muted);
+    min-height: 40px;
+    overflow-wrap: anywhere;
+}
+
+.result.good {
+    color: var(--green);
+}
+
+.result.bad {
+    color: #ff9baa;
+}
+
+.logs {
+    max-height: 220px;
+    overflow: auto;
+}
+
+.log {
+    display: flex;
+    gap: 12px;
+    padding: 9px 2px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+}
+
+.log time {
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.footer {
+    text-align: center;
+    color: #7187a1;
+    font-size: 11px;
+    padding: 22px 12px 30px;
+}
+
+@media(max-width: 900px) {
+    .grid, .forms {
+        grid-template-columns: 1fr;
+    }
+
+    .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media(max-width: 520px) {
+    header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .topline {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .field {
+        flex-direction: column;
+    }
+}
 </style>
 </head>
+
 <body>
+
 <header>
-  <div>
-    <h1>⬡ Decentralized DHT</h1>
-    <div class="subtitle">Distributed Hash Table · Live Dashboard Prototype</div>
-  </div>
-  <div class="status">● UI Running · Simulation Mode</div>
+    <div class="brand">
+        <div class="logo">⬡</div>
+        <div>
+            <h1>Decentralized DHT</h1>
+            <div class="subtitle">Distributed Hash Table · C++ Live Dashboard</div>
+        </div>
+    </div>
+
+    <div id="connection" class="connection">
+        <span class="led"></span>
+        <span id="connectionText">Connecting to C++ API...</span>
+    </div>
 </header>
 
 <main>
-  <section class="metrics">
-    <div class="metric"><div class="label">Active Nodes</div>
-      <div class="number" id="nodeCount">3</div><span class="status">● Prototype</span></div>
-    <div class="metric"><div class="label">Keys Stored</div>
-      <div class="number" id="keyCount">0</div><span class="subtitle">Local test data</span></div>
-    <div class="metric"><div class="label">Total Requests</div>
-      <div class="number" id="requestCount">0</div><span class="subtitle">Since page opened</span></div>
-    <div class="metric"><div class="label">Operations</div>
-      <div class="number" id="successCount">0</div><span class="subtitle">Successful actions</span></div>
-  </section>
 
-  <section class="layout">
-    <div class="panel">
-      <h2>Hash Ring Visualization</h2>
-      <div class="ring-wrap"><div class="ring" id="ring"></div></div>
-      <div class="subtitle" id="ringInfo">Ring positions: 0–99 · Illustrative UI</div>
-    </div>
-    <div class="panel">
-      <h2>Nodes in Cluster <button style="float:right" onclick="addNode()">+ Add Node</button></h2>
-      <div class="table-wrap">
-        <table><thead><tr><th>Node ID</th><th>Hash ID</th>
-          <th>Status</th><th>Keys</th><th>Action</th></tr></thead>
-          <tbody id="nodes"></tbody></table>
-      </div>
-    </div>
-  </section>
+<div class="topline">
+    <p>Monitor your local DHT ring and perform key-value operations.</p>
+    <button class="btn-secondary" id="refreshBtn" onclick="refresh(true)">
+        ↻ Refresh data
+    </button>
+</div>
 
-  <section class="forms">
-    <div class="panel">
-      <h2>Key-Value Operations</h2>
-      <div class="form-row"><input id="key" placeholder="Key e.g. user101">
-        <input id="value" placeholder="Value e.g. Arnav"></div>
-      <div class="controls">
-        <button onclick="putKey()">PUT / Store</button>
-        <button class="secondary" onclick="getKey()">GET / Retrieve</button>
-        <button class="danger" onclick="deleteKey()">DELETE</button>
-      </div>
-      <div id="result" class="subtitle">Enter a key and value to begin.</div>
-    </div>
-    <div class="panel">
-      <h2>Stored Data</h2>
-      <div class="table-wrap">
-        <table><thead><tr><th>Key</th><th>Value</th><th>Node</th></tr></thead>
-          <tbody id="data"></tbody></table>
-      </div>
-    </div>
-  </section>
+<section class="metrics">
 
-  <section class="panel" style="margin-top:16px">
-    <h2>Activity Logs <button class="secondary" style="float:right" onclick="clearLogs()">Clear</button></h2>
-    <div id="logs" class="logs"></div>
-  </section>
+    <article class="metric">
+        <div class="metric-label">ACTIVE NODES</div>
+        <div class="metric-value" id="nodeCount">—</div>
+        <div class="metric-note">Nodes currently in the local ring</div>
+    </article>
+
+    <article class="metric">
+        <div class="metric-label">KEYS STORED</div>
+        <div class="metric-value" id="keyCount">—</div>
+        <div class="metric-note">Records in C++ node hash tables</div>
+    </article>
+
+    <article class="metric">
+        <div class="metric-label">API REQUESTS</div>
+        <div class="metric-value" id="requestCount">0</div>
+        <div class="metric-note">Actions submitted from this page</div>
+    </article>
+
+    <article class="metric">
+        <div class="metric-label">SUCCESSFUL ACTIONS</div>
+        <div class="metric-value" id="successCount">0</div>
+        <div class="metric-note">Successful operations this session</div>
+    </article>
+
+</section>
+
+<section class="grid">
+
+    <article class="panel">
+        <div class="panel-head">
+            <h2>Hash Ring Visualization</h2>
+            <span class="tag">64-bit IDs</span>
+        </div>
+
+        <div class="ring-area">
+            <div class="ring" id="ring"></div>
+        </div>
+
+        <div class="ring-legend">
+            <span><i class="legend-dot"></i>Joined node</span>
+            <span id="ringCount">0 nodes</span>
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel-head">
+            <h2>Nodes in Cluster</h2>
+            <button class="btn-small" onclick="addNode()">＋ JOIN node</button>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Node</th>
+                        <th>64-bit Node ID</th>
+                        <th>Status</th>
+                        <th>Keys</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="nodes">
+                    <tr><td class="empty" colspan="5">Waiting for C++ API...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+</section>
+
+<section class="forms">
+
+    <article class="panel">
+        <div class="panel-head">
+            <h2>Key-Value Operations</h2>
+            <span class="tag">PUT · GET · DELETE</span>
+        </div>
+
+        <div class="field">
+            <input id="key" placeholder="Key (e.g. student101)" autocomplete="off">
+            <input id="value" placeholder="Value (e.g. Garima)" autocomplete="off">
+        </div>
+
+        <div class="actions">
+            <button onclick="putKey()">PUT · Store</button>
+            <button class="btn-secondary" onclick="getKey()">GET · Retrieve</button>
+            <button class="btn-danger" onclick="deleteKey()">DELETE</button>
+        </div>
+
+        <div id="result" class="result" role="status" aria-live="polite">
+            Enter a key to get started.
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel-head">
+            <h2>Stored Data</h2>
+            <span class="tag" id="dataCount">0 records</span>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th>Responsible Node</th>
+                    </tr>
+                </thead>
+                <tbody id="data">
+                    <tr><td class="empty" colspan="3">No data available.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+</section>
+
+<section class="panel" style="margin-top:15px">
+    <div class="panel-head">
+        <h2>Activity Log</h2>
+        <button class="btn-secondary btn-small" onclick="clearLogs()">Clear log</button>
+    </div>
+
+    <div id="logs" class="logs">
+        <div class="muted">Dashboard started.</div>
+    </div>
+</section>
+
 </main>
-<footer>Frontend prototype · Data resets when this page is refreshed · Not connected to C++ networking yet</footer>
+
+<div class="footer">
+    Dashboard reads and updates the in-memory DHT running in dht.exe.
+    Data is cleared when the C++ process exits.
+    This local API does not imply cross-computer replication.
+</div>
 
 <script>
-const nodes = [
-  {id:1, hash:12, active:true},
-  {id:2, hash:45, active:true},
-  {id:3, hash:78, active:true}
-];
-const store = new Map();
-let requests = 0, successes = 0, nextID = 4;
+'use strict';
 
-function hashKey(key) {
-  let hash = 5381;
-  for (const ch of key) hash = (Math.imul(hash,33) + ch.charCodeAt(0)) >>> 0;
-  return hash % 100;
+/* API CONFIGURATION */
+const API = 'http://localhost:8080';
+
+let nodes = [];
+let dataRows = [];
+let requests = 0;
+let successes = 0;
+let refreshBusy = false;
+
+const $ = id => document.getElementById(id);
+
+
+/* API REQUEST FUNCTION */
+async function api(path, body = null) {
+
+    const options = body === null
+        ? {}
+        : {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+            },
+            body: new URLSearchParams(body).toString()
+        };
+
+    const response = await fetch(API + path, {
+        ...options,
+        cache: 'no-store'
+    });
+
+    if (!response.ok) {
+        throw new Error('HTTP ' + response.status);
+    }
+
+    return response.json();
 }
-function ownerFor(key) {
-  const active = nodes.filter(n => n.active).sort((a,b)=>a.hash-b.hash);
-  if (!active.length) return null;
-  const h = hashKey(key);
-  return active.find(n => n.hash >= h) || active[0];
-}
+
+
+/* ACTIVITY LOG */
 function log(message) {
-  const row = document.createElement('div');
-  row.className = 'log';
-  const time = document.createElement('small');
-  time.textContent = new Date().toLocaleTimeString();
-  const text = document.createElement('span');
-  text.textContent = message;
-  row.append(time,text);
-  document.getElementById('logs').prepend(row);
-}
-function render() {
-  document.getElementById('nodeCount').textContent = nodes.filter(n=>n.active).length;
-  document.getElementById('keyCount').textContent = store.size;
-  document.getElementById('requestCount').textContent = requests;
-  document.getElementById('successCount').textContent = successes;
 
-  const tbody = document.getElementById('nodes');
-  tbody.replaceChildren();
-  nodes.forEach(n=>{
+    const row = document.createElement('div');
+    row.className = 'log';
+
+    const time = document.createElement('time');
+    time.textContent = new Date().toLocaleTimeString();
+
+    const text = document.createElement('span');
+    text.textContent = message;
+
+    row.append(time, text);
+    $('logs').prepend(row);
+}
+
+
+/* RESULT MESSAGE */
+function showResult(message, type = '') {
+
+    const el = $('result');
+
+    el.textContent = message;
+    el.className = 'result' + (type ? ' ' + type : '');
+}
+
+
+/* TABLE HELPERS */
+function cell(row, value) {
+
+    const td = document.createElement('td');
+
+    td.textContent = String(value ?? '');
+
+    row.appendChild(td);
+}
+
+
+function emptyRow(body, cols, message) {
+
     const tr = document.createElement('tr');
-    [ 'Node '+n.id, n.hash, n.active?'Active':'Offline',
-      [...store.keys()].filter(k=>ownerFor(k)?.id===n.id).length
-    ].forEach((v,i)=>{
-      const td=document.createElement('td'); td.textContent=v;
-      if(i===2) td.innerHTML=n.active?'<span class="pill">Active</span>':'<span style="color:#ff687b">Offline</span>';
-      tr.appendChild(td);
-    });
-    const action=document.createElement('td');
-    const btn=document.createElement('button');
-    btn.className=n.active?'danger':'secondary';
-    btn.textContent=n.active?'Stop':'Start';
-    btn.onclick=()=>{n.active=!n.active;log('Node '+n.id+' '+(n.active?'started':'stopped')+' (simulation)');render();};
-    action.appendChild(btn);tr.appendChild(action);tbody.appendChild(tr);
-  });
+    const td = document.createElement('td');
 
-  const ring=document.getElementById('ring');
-  ring.querySelectorAll('.dot').forEach(e=>e.remove());
-  nodes.forEach((n,i)=>{
-    const angle=(n.hash/100)*Math.PI*2-Math.PI/2;
-    const dot=document.createElement('div');dot.className='dot';
-    dot.style.left=(50+46*Math.cos(angle))+'%';
-    dot.style.top=(50+46*Math.sin(angle))+'%';
-    dot.style.background=n.active?'#25dba0':'#ff687b';
-    dot.title='Node '+n.id+' · position '+n.hash;
-    ring.appendChild(dot);
-  });
+    td.colSpan = cols;
+    td.className = 'empty';
+    td.textContent = message;
 
-  const data=document.getElementById('data');data.replaceChildren();
-  for(const [key,value] of store){
-    const tr=document.createElement('tr');
-    [key,value,ownerFor(key)?.id ?? 'No active node'].forEach(v=>{
-      const td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+    tr.appendChild(td);
+    body.appendChild(tr);
+}
+
+
+/* CORRECT 64-BIT RING POSITION */
+function ringAngle(id) {
+
+    const max = 18446744073709551616n;
+
+    try {
+        const value = BigInt(id);
+
+        if (value < 0n || value >= max) {
+            return 0;
+        }
+
+        const scaled = value * 360000n / max;
+
+        return Number(scaled) / 1000 * Math.PI / 180 - Math.PI / 2;
+
+    } catch {
+        return 0;
+    }
+}
+
+
+/* RENDER DASHBOARD */
+function render() {
+
+    $('nodeCount').textContent = nodes.length;
+    $('keyCount').textContent = dataRows.length;
+
+    $('requestCount').textContent = requests;
+    $('successCount').textContent = successes;
+
+    $('ringCount').textContent =
+        nodes.length + ' node' + (nodes.length === 1 ? '' : 's');
+
+    $('dataCount').textContent =
+        dataRows.length + ' record' + (dataRows.length === 1 ? '' : 's');
+
+
+    /* NODE TABLE */
+    const nodeBody = $('nodes');
+
+    nodeBody.replaceChildren();
+
+    if (!nodes.length) {
+        emptyRow(nodeBody, 5, 'No nodes have joined. Use JOIN node or choose JOIN in the console.');
+    }
+
+    nodes.forEach((node, index) => {
+
+        const tr = document.createElement('tr');
+
+        cell(tr, 'Node ' + (index + 1));
+        cell(tr, node.id);
+
+        const status = document.createElement('td');
+        const pill = document.createElement('span');
+
+        pill.className = 'pill';
+        pill.textContent = 'In ring';
+
+        status.appendChild(pill);
+        tr.appendChild(status);
+
+        cell(tr, node.keys);
+
+        const action = document.createElement('td');
+        const btn = document.createElement('button');
+
+        btn.className = 'btn-danger btn-small';
+        btn.textContent = 'LEAVE';
+
+        btn.onclick = () => leaveNode(node.id);
+
+        action.appendChild(btn);
+        tr.appendChild(action);
+
+        nodeBody.appendChild(tr);
     });
-    data.appendChild(tr);
-  }
+
+
+    /* RING VISUALIZATION */
+    const ring = $('ring');
+
+    ring.querySelectorAll('.dot').forEach(dot => dot.remove());
+
+    nodes.forEach(node => {
+
+        const angle = ringAngle(node.id);
+
+        const dot = document.createElement('span');
+
+        dot.className = 'dot';
+
+        dot.style.left = (50 + 46 * Math.cos(angle)) + '%';
+        dot.style.top = (50 + 46 * Math.sin(angle)) + '%';
+
+        dot.title = 'Node ID: ' + node.id;
+
+        ring.appendChild(dot);
+    });
+
+
+    /* DATA TABLE */
+    const dataBody = $('data');
+
+    dataBody.replaceChildren();
+
+    if (!dataRows.length) {
+        emptyRow(dataBody, 3, 'No key-value records stored yet.');
+    }
+
+    dataRows.forEach(item => {
+
+        const tr = document.createElement('tr');
+
+        cell(tr, item.key);
+        cell(tr, item.value);
+        cell(tr, item.node);
+
+        dataBody.appendChild(tr);
+    });
 }
-function putKey() {
-  requests++;
-  const key=document.getElementById('key').value.trim();
-  const value=document.getElementById('value').value;
-  if(!key || !value){result('Please enter both key and value.');log('PUT failed: missing key/value');render();return;}
-  const node=ownerFor(key);
-  if(!node){result('No active nodes available.');log('PUT failed: no active nodes');render();return;}
-  store.set(key,value);successes++;
-  result('Stored key "'+key+'" on Node '+node.id+' (simulation).');
-  log('PUT · '+key+' stored on Node '+node.id);render();
+
+
+/* CONNECTION STATUS */
+function setConnection(online) {
+
+    const box = $('connection');
+
+    box.className = 'connection ' + (online ? 'online' : 'offline');
+
+    $('connectionText').textContent =
+        online ? 'C++ API Connected' : 'C++ API Offline · Start dht.exe';
 }
-function getKey() {
-  requests++;
-  const key=document.getElementById('key').value.trim();
-  if(!key){result('Enter a key to retrieve.');render();return;}
-  const node=ownerFor(key);
-  if(store.has(key) && node){
-    successes++;result('Value: '+store.get(key)+' · Node '+node.id);
-    log('GET · '+key+' retrieved successfully');
-  } else {result('Key not found or no active node available.');log('GET · '+key+' not found');}
-  render();
+
+
+/* REFRESH DASHBOARD */
+async function refresh(showMessage = false) {
+
+    if (refreshBusy) return;
+
+    refreshBusy = true;
+
+    $('refreshBtn').disabled = true;
+
+    try {
+
+        const [ns, ds] = await Promise.all([
+            api('/api/nodes'),
+            api('/api/data')
+        ]);
+
+        nodes = Array.isArray(ns.nodes) ? ns.nodes : [];
+        dataRows = Array.isArray(ds.data) ? ds.data : [];
+
+        setConnection(true);
+
+        render();
+
+        if (showMessage) {
+            showResult('Dashboard data refreshed from the C++ DHT.', 'good');
+            log('Dashboard data refreshed.');
+        }
+
+    } catch (error) {
+
+        setConnection(false);
+
+        if (showMessage) {
+            showResult(
+                'Could not reach http://localhost:8080. Start dht.exe and try again.',
+                'bad'
+            );
+        }
+
+    } finally {
+
+        refreshBusy = false;
+        $('refreshBtn').disabled = false;
+    }
 }
-function deleteKey() {
-  requests++;
-  const key=document.getElementById('key').value.trim();
-  if(store.delete(key)){successes++;result('Deleted key: '+key);log('DELETE · '+key+' deleted');}
-  else {result('Key not found: '+key);log('DELETE · '+key+' not found');}
-  render();
+
+
+/* READ KEY */
+function readKey() {
+    return $('key').value.trim();
 }
-function addNode() {
-  const used=new Set(nodes.map(n=>n.hash));
-  let hash=Math.floor(Math.random()*100);
-  while(used.has(hash)) hash=(hash+1)%100;
-  const node={id:nextID++,hash,active:true};nodes.push(node);
-  log('Node '+node.id+' joined at hash '+hash+' (simulation)');
-  render();
+
+
+/* PUT OPERATION */
+async function putKey() {
+
+    const key = readKey();
+    const value = $('value').value;
+
+    if (!key || !value.trim()) {
+        showResult('Please enter both a key and a value.', 'bad');
+        return;
+    }
+
+    requests++;
+    render();
+
+    try {
+
+        const r = await api('/api/put', { key, value });
+
+        if (r.ok) {
+
+            successes++;
+
+            showResult('Stored "' + key + '" in the C++ DHT.', 'good');
+
+            log('PUT · ' + key + ' stored successfully.');
+
+        } else {
+
+            showResult(r.message || 'PUT failed.', 'bad');
+            log('PUT failed · ' + key);
+        }
+
+        await refresh();
+
+    } catch (error) {
+
+        showResult('API connection failed. Make sure dht.exe is running.', 'bad');
+        setConnection(false);
+    }
+
+    render();
 }
-function result(message){document.getElementById('result').textContent=message;}
-function clearLogs(){document.getElementById('logs').replaceChildren();}
-render();
-log('Dashboard initialized in simulation mode');
+
+
+/* GET OPERATION */
+async function getKey() {
+
+    const key = readKey();
+
+    if (!key) {
+        showResult('Enter a key to retrieve.', 'bad');
+        return;
+    }
+
+    requests++;
+    render();
+
+    try {
+
+        const r = await api('/api/get', { key });
+
+        if (r.ok) {
+
+            successes++;
+
+            showResult(
+                'Value: ' + r.value + ' · Responsible node: ' + r.node,
+                'good'
+            );
+
+            log('GET · ' + key + ' retrieved successfully.');
+
+        } else {
+
+            showResult(r.message || 'Key not found.', 'bad');
+            log('GET · ' + key + ' not found.');
+        }
+
+    } catch (error) {
+
+        showResult('API connection failed. Make sure dht.exe is running.', 'bad');
+        setConnection(false);
+    }
+
+    render();
+}
+
+
+/* DELETE OPERATION */
+async function deleteKey() {
+
+    const key = readKey();
+
+    if (!key) {
+        showResult('Enter a key to delete.', 'bad');
+        return;
+    }
+
+    if (!confirm('Delete key "' + key + '" from the DHT?')) {
+        return;
+    }
+
+    requests++;
+    render();
+
+    try {
+
+        const r = await api('/api/delete', { key });
+
+        if (r.ok) {
+
+            successes++;
+
+            showResult('Deleted key: ' + key, 'good');
+            log('DELETE · ' + key + ' deleted successfully.');
+
+        } else {
+
+            showResult(r.message || 'Key not found.', 'bad');
+            log('DELETE · ' + key + ' not found.');
+        }
+
+        await refresh();
+
+    } catch (error) {
+
+        showResult('API connection failed. Make sure dht.exe is running.', 'bad');
+        setConnection(false);
+    }
+
+    render();
+}
+
+
+/* JOIN NODE */
+async function addNode() {
+
+    const id = prompt('Enter a numeric 64-bit Node ID to JOIN.');
+
+    if (id === null) return;
+
+    const cleanId = id.trim();
+
+    if (!/^\d+$/.test(cleanId)) {
+        showResult('Node ID must contain digits only.', 'bad');
+        return;
+    }
+
+    try {
+
+        const value = BigInt(cleanId);
+        const max = 18446744073709551616n;
+
+        if (value < 0n || value >= max) {
+            showResult('Node ID must be between 0 and 2^64 - 1.', 'bad');
+            return;
+        }
+
+    } catch {
+
+        showResult('Invalid Node ID.', 'bad');
+        return;
+    }
+
+    requests++;
+    render();
+
+    try {
+
+        const r = await api('/api/join', { id: cleanId });
+
+        if (r.ok) {
+
+            successes++;
+
+            showResult(r.message || 'Node joined successfully.', 'good');
+            log('JOIN · node ' + cleanId + ' joined the local ring.');
+
+        } else {
+
+            showResult(r.message || 'JOIN failed.', 'bad');
+            log('JOIN failed · node ' + cleanId);
+        }
+
+        await refresh();
+
+    } catch (error) {
+
+        showResult('API connection failed. Make sure dht.exe is running.', 'bad');
+        setConnection(false);
+    }
+
+    render();
+}
+
+
+/* LEAVE NODE */
+async function leaveNode(id) {
+
+    if (!confirm('Remove node ' + id + ' from the local DHT ring?')) {
+        return;
+    }
+
+    requests++;
+    render();
+
+    try {
+
+        const r = await api('/api/leave', { id });
+
+        if (r.ok) {
+
+            successes++;
+
+            showResult(r.message || 'Node left successfully.', 'good');
+            log('LEAVE · node ' + id + ' left the local ring.');
+
+        } else {
+
+            showResult(r.message || 'LEAVE failed.', 'bad');
+            log('LEAVE failed · node ' + id);
+        }
+
+        await refresh();
+
+    } catch (error) {
+
+        showResult('API connection failed. Make sure dht.exe is running.', 'bad');
+        setConnection(false);
+    }
+
+    render();
+}
+
+
+/* CLEAR ACTIVITY LOG */
+function clearLogs() {
+
+    $('logs').replaceChildren();
+
+    log('Activity log cleared.');
+}
+
+
+/* KEYBOARD SHORTCUTS */
+$('key').addEventListener('keydown', event => {
+    if (event.key === 'Enter') getKey();
+});
+
+$('value').addEventListener('keydown', event => {
+    if (event.key === 'Enter') putKey();
+});
+
+
+/* INITIALIZE DASHBOARD */
+refresh();
+
+log('Dashboard opened. Checking C++ API at ' + API + '.');
+
+setInterval(() => refresh(false), 3000);
+
 </script>
+
 </body>
 </html>

@@ -240,3 +240,63 @@ std::size_t DHT::nodeCount() const
 {
     return ring.size();
 }
+
+bool DHT::getValue(
+    const std::string& key,
+    std::string& valueOut,
+    NodeID& ownerOut
+) const
+{
+    std::lock_guard<std::mutex> lock(ringMutex);
+
+    auto node = successorOf(hashKey(key));
+
+    if (node == ring.end())
+        return false;
+
+    if (!node->second->fetch(key, valueOut))
+        return false;
+
+    ownerOut = node->first;
+    return true;
+}
+
+std::vector<std::pair<NodeID, std::size_t>>
+DHT::nodesSnapshot() const
+{
+    std::lock_guard<std::mutex> lock(ringMutex);
+
+    std::vector<std::pair<NodeID, std::size_t>> result;
+
+    for (const auto& entry : ring)
+    {
+        result.emplace_back(
+            entry.first,
+            entry.second->dataCount()
+        );
+    }
+
+    return result;
+}
+
+std::vector<std::tuple<std::string, std::string, NodeID>>
+DHT::dataSnapshot() const
+{
+    std::lock_guard<std::mutex> lock(ringMutex);
+
+    std::vector<std::tuple<std::string, std::string, NodeID>> result;
+
+    for (const auto& entry : ring)
+    {
+        for (const auto& item : entry.second->entries())
+        {
+            result.emplace_back(
+                item.first,
+                item.second,
+                entry.first
+            );
+        }
+    }
+
+    return result;
+}

@@ -5,6 +5,7 @@
 #include "Network.h"
 #include "Hashing.h"
 #include "DHT.h"
+#include "DashboardServer.h"
 
 using namespace std;
 
@@ -75,6 +76,18 @@ void printMenu()
 int main()
 {
     DHT dht;
+
+    DashboardServer dashboard(dht);
+
+if (dashboard.start(8080))
+{
+    cout << "Dashboard API running at "
+         << "http://localhost:8080\n";
+}
+else
+{
+    cerr << "Dashboard API could not start.\n";
+}
 
     string ip;
     unsigned int port;
@@ -158,6 +171,11 @@ int main()
 
         case 9:
             network.closeConnection();
+            cout << "Program ended.\n";
+            return 0;
+            dashboard.stop();
+            network.closeConnection();
+
             cout << "Program ended.\n";
             return 0;
 
