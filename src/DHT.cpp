@@ -5,14 +5,18 @@
 #include <iostream>
 #include <iterator>
 #include <utility>
+#include <vector>
 
 using namespace std;
 
+// Hash a key to get its position on the DHT ring.
 NodeID DHT::hashKey(const string& key)
 {
     return hashString(key);
 }
 
+// Find the first node whose ID is >= the given position.
+// If no such node exists, wrap around to the first node.
 DHT::RingMap::const_iterator DHT::successorOf(NodeID position) const
 {
     if (ring.empty())
@@ -26,6 +30,7 @@ DHT::RingMap::const_iterator DHT::successorOf(NodeID position) const
     return it;
 }
 
+// Find the node immediately before the given node ID.
 DHT::RingMap::const_iterator DHT::predecessorOf(NodeID nodeID) const
 {
     if (ring.empty())
@@ -39,6 +44,7 @@ DHT::RingMap::const_iterator DHT::predecessorOf(NodeID nodeID) const
     return prev(it);
 }
 
+// Check whether h belongs to the interval (from, to].
 bool DHT::inRange(NodeID h, NodeID from, NodeID to)
 {
     if (from < to)
@@ -50,6 +56,7 @@ bool DHT::inRange(NodeID h, NodeID from, NodeID to)
     return true;
 }
 
+// Add a node to the DHT ring.
 bool DHT::addNode(NodeID nodeID)
 {
     lock_guard<mutex> lock(ringMutex);
@@ -60,6 +67,7 @@ bool DHT::addNode(NodeID nodeID)
         return false;
     }
 
+    // First node in the ring.
     if (ring.empty())
     {
         ring.emplace(nodeID, make_unique<Node>(nodeID));
@@ -75,12 +83,11 @@ bool DHT::addNode(NodeID nodeID)
         return false;
 
     auto predecessor = predecessorOf(successor->first);
-
-    NodeID successorID = successor->first;
     NodeID predecessorID = predecessor->first;
 
     auto newNode = make_unique<Node>(nodeID);
 
+    // Move keys that now belong to the new node.
     vector<pair<string, string>> oldEntries =
         successor->second->entries();
 
@@ -97,12 +104,14 @@ bool DHT::addNode(NodeID nodeID)
 
     ring.emplace(nodeID, move(newNode));
 
+    // Rebuild backup copies after ownership changes.
     rebuildReplicas();
 
     cout << "Node " << nodeID << " joined the DHT.\n";
     return true;
 }
 
+// Remove a node from the DHT ring.
 bool DHT::removeNode(NodeID nodeID)
 {
     lock_guard<mutex> lock(ringMutex);
@@ -115,6 +124,7 @@ bool DHT::removeNode(NodeID nodeID)
         return false;
     }
 
+    // Removing the only node.
     if (ring.size() == 1)
     {
         if (nodeIt->second->dataCount() > 0)
@@ -130,13 +140,16 @@ bool DHT::removeNode(NodeID nodeID)
         return true;
     }
 
+    // Find the next node, wrapping around if necessary.
     auto successor = next(nodeIt);
 
     if (successor == ring.end())
+    {
         successor = ring.begin();
+    }
 
-
-        vector<pair<string, string>> entries =
+    // Transfer all primary data to the successor.
+    vector<pair<string, string>> entries =
         nodeIt->second->entries();
 
     for (const auto& entry : entries)
@@ -146,12 +159,14 @@ bool DHT::removeNode(NodeID nodeID)
 
     ring.erase(nodeIt);
 
+    // Rebuild replicas after ownership changes.
     rebuildReplicas();
 
     cout << "Node " << nodeID << " left the DHT.\n";
     return true;
 }
 
+// Store a key-value pair on its responsible node and replicate it.
 void DHT::put(const string& key, const string& value)
 {
     lock_guard<mutex> lock(ringMutex);
@@ -170,12 +185,14 @@ void DHT::put(const string& key, const string& value)
 
     owner->second->store(key, value);
 
+    // Create a backup on the next node.
     replicateKey(key, value);
 
     cout << "Data stored successfully.\n";
     cout << "Responsible node: " << owner->first << "\n";
 }
 
+// Retrieve a key-value pair.
 void DHT::get(const string& key) const
 {
     string value;
@@ -193,6 +210,7 @@ void DHT::get(const string& key) const
     }
 }
 
+// Delete a key-value pair from primary storage and backups.
 void DHT::remove(const string& key)
 {
     lock_guard<mutex> lock(ringMutex);
@@ -211,6 +229,7 @@ void DHT::remove(const string& key)
 
     bool removed = owner->second->erase(key);
 
+    // Remove all backup copies of this key.
     for (auto& replica : replicas)
     {
         replica.second.erase(key);
@@ -222,6 +241,7 @@ void DHT::remove(const string& key)
         cout << "Key not found.\n";
 }
 
+// Find the responsible node for a key.
 void DHT::showResponsibleNode(const string& key) const
 {
     lock_guard<mutex> lock(ringMutex);
@@ -243,6 +263,7 @@ void DHT::showResponsibleNode(const string& key) const
     }
 }
 
+// Display all nodes.
 void DHT::displayNodes() const
 {
     lock_guard<mutex> lock(ringMutex);
@@ -263,6 +284,7 @@ void DHT::displayNodes() const
     }
 }
 
+// Display all primary key-value pairs.
 void DHT::displayData() const
 {
     lock_guard<mutex> lock(ringMutex);
@@ -296,121 +318,7 @@ void DHT::displayData() const
         cout << "No data stored.\n";
 }
 
-size_t DHT::nodeCount() const
-{
-    lock_guard<mutex> lock(ringMutex);
-    return ring.size();
-}
-
-bool DHT::getValue(
-    const string& key,
-    string& valueOut,
-    NodeID& ownerOut
-) const
-{
-    lock_guard<mutex> lock(ringMutex);
-
-    if (ring.empty())
-        return false;
-
-    NodeID keyID = hashKey(key);
-    auto owner = successorOf(keyID);
-
-    if (owner == ring.end())
-        return false;
-
-    if (owner->second->fetch(key, valueOut))
-    {
-        ownerOut = owner->first;
-        return true;
-    }
-
-    return false;
-}
-
-vector<pair<NodeID, size_t>> DHT::nodesSnapshot() const
-{
-    lock_guard<mutex> lock(ringMutex);
-
-    vector<pair<NodeID, size_t>> result;
-
-    for (const auto& node : ring)
-    {
-        result.emplace_back(
-            node.first,
-            node.second->dataCount()
-        );
-    }
-
-    return result;
-}
-
-vector<tuple<string, string, NodeID>> DHT::dataSnapshot() const
-{
-    lock_guard<mutex> lock(ringMutex);
-
-    vector<tuple<string, string, NodeID>> result;
-
-    for (const auto& node : ring)
-    {
-        auto entries = node.second->entries();
-
-        for (const auto& entry : entries)
-        {
-            result.emplace_back(
-                entry.first,
-                entry.second,
-                node.first
-            );
-        }
-    }
-
-    return result;
-}
-
-void DHT::replicateKey(
-    const string& key,
-    const string& value
-)
-{
-    if (ring.size() < 2)
-        return;
-
-    NodeID keyID = hashKey(key);
-    auto primary = successorOf(keyID);
-
-    if (primary == ring.end())
-        return;
-
-    auto backup = next(primary);
-
-    if (backup == ring.end())
-        backup = ring.begin();
-
-    if (backup->first == primary->first)
-        return;
-
-    replicas[backup->first][key] = value;
-}
-
-void DHT::rebuildReplicas()
-{
-    replicas.clear();
-
-    if (ring.size() < 2)
-        return;
-
-    for (const auto& node : ring)
-    {
-        auto entries = node.second->entries();
-
-        for (const auto& entry : entries)
-        {
-            replicateKey(entry.first, entry.second);
-        }
-    }
-}
-
+// Display all backup copies.
 void DHT::displayReplicas() const
 {
     lock_guard<mutex> lock(ringMutex);
@@ -442,7 +350,128 @@ void DHT::displayReplicas() const
         cout << "No replica data available.\n";
 }
 
+// Return the number of nodes.
+size_t DHT::nodeCount() const
+{
+    lock_guard<mutex> lock(ringMutex);
+    return ring.size();
+}
 
+// Return a value and its responsible node ID.
+bool DHT::getValue(
+    const string& key,
+    string& valueOut,
+    NodeID& ownerOut
+) const
+{
+    lock_guard<mutex> lock(ringMutex);
+
+    if (ring.empty())
+        return false;
+
+    NodeID keyID = hashKey(key);
+    auto owner = successorOf(keyID);
+
+    if (owner == ring.end())
+        return false;
+
+    if (owner->second->fetch(key, valueOut))
+    {
+        ownerOut = owner->first;
+        return true;
+    }
+
+    return false;
+}
+
+// Return a snapshot of node IDs and their primary data counts.
+vector<pair<NodeID, size_t>> DHT::nodesSnapshot() const
+{
+    lock_guard<mutex> lock(ringMutex);
+
+    vector<pair<NodeID, size_t>> result;
+
+    for (const auto& node : ring)
+    {
+        result.emplace_back(
+            node.first,
+            node.second->dataCount()
+        );
+    }
+
+    return result;
+}
+
+// Return a snapshot of all primary data entries.
+vector<tuple<string, string, NodeID>> DHT::dataSnapshot() const
+{
+    lock_guard<mutex> lock(ringMutex);
+
+    vector<tuple<string, string, NodeID>> result;
+
+    for (const auto& node : ring)
+    {
+        auto entries = node.second->entries();
+
+        for (const auto& entry : entries)
+        {
+            result.emplace_back(
+                entry.first,
+                entry.second,
+                node.first
+            );
+        }
+    }
+
+    return result;
+}
+
+// Create a backup on the next node in the ring.
+void DHT::replicateKey(
+    const string& key,
+    const string& value
+)
+{
+    if (ring.size() < 2)
+        return;
+
+    NodeID keyID = hashKey(key);
+    auto primary = successorOf(keyID);
+
+    if (primary == ring.end())
+        return;
+
+    auto backup = next(primary);
+
+    if (backup == ring.end())
+        backup = ring.begin();
+
+    if (backup->first == primary->first)
+        return;
+
+    replicas[backup->first][key] = value;
+}
+
+// Rebuild all backup copies after nodes join or leave.
+void DHT::rebuildReplicas()
+{
+    replicas.clear();
+
+    if (ring.size() < 2)
+        return;
+
+    for (const auto& node : ring)
+    {
+        auto entries = node.second->entries();
+
+        for (const auto& entry : entries)
+        {
+            replicateKey(entry.first, entry.second);
+        }
+    }
+}
+
+// Simulate a node failure and recover data from its replicas.
 bool DHT::simulateNodeFailure(NodeID nodeID)
 {
     lock_guard<mutex> lock(ringMutex);
@@ -462,6 +491,7 @@ bool DHT::simulateNodeFailure(NodeID nodeID)
         return false;
     }
 
+    // Find the successor that should contain this node's replicas.
     auto successor = next(failedNode);
 
     if (successor == ring.end())
@@ -472,6 +502,7 @@ bool DHT::simulateNodeFailure(NodeID nodeID)
     size_t expectedKeys = failedNode->second->dataCount();
     size_t recoveredKeys = 0;
 
+    // Locate the backup copies on the successor.
     auto backupIt = replicas.find(successorID);
 
     if (backupIt != replicas.end())
@@ -481,6 +512,7 @@ bool DHT::simulateNodeFailure(NodeID nodeID)
             NodeID keyID = hashKey(entry.first);
             auto originalOwner = successorOf(keyID);
 
+            // Recover only keys that belonged to the failed node.
             if (originalOwner != ring.end() &&
                 originalOwner->first == nodeID)
             {
@@ -490,8 +522,10 @@ bool DHT::simulateNodeFailure(NodeID nodeID)
         }
     }
 
+    // Remove the failed node from the ring.
     ring.erase(failedNode);
 
+    // Rebuild backups for the updated ring.
     rebuildReplicas();
 
     cout << "\n--- Node Failure Simulation ---\n";
