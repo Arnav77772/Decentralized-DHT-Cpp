@@ -1,5 +1,7 @@
+
 #ifndef DHT_H
 #define DHT_H
+
 #include <vector>
 #include <tuple>
 #include <cstddef>
@@ -15,41 +17,64 @@
 class DHT
 {
 public:
+
     using RingMap = std::map<NodeID, std::unique_ptr<Node>>;
 
     DHT() = default;
 
     static NodeID hashKey(const std::string& key);
+
     bool getValue(
-    const std::string& key,
-    std::string& valueOut,
-    NodeID& ownerOut
-) const;
+        const std::string& key,
+        std::string& valueOut,
+        NodeID& ownerOut
+    ) const;
 
-std::vector<std::pair<NodeID, std::size_t>>
-nodesSnapshot() const;
+    std::vector<std::pair<NodeID, std::size_t>>
+    nodesSnapshot() const;
 
-std::vector<std::tuple<std::string, std::string, NodeID>>
-dataSnapshot() const;
+    std::vector<std::tuple<std::string, std::string, NodeID>>
+    dataSnapshot() const;
+    
     bool addNode(NodeID nodeID);
     bool removeNode(NodeID nodeID);
+    bool simulateNodeFailure(NodeID nodeID);
 
     void put(const std::string& key, const std::string& value);
     void get(const std::string& key) const;
     void remove(const std::string& key);
+
     void showResponsibleNode(const std::string& key) const;
     void displayNodes() const;
     void displayData() const;
-
+    void displayReplicas() const;
     std::size_t nodeCount() const;
 
 private:
+
     RingMap ring;
-mutable std::mutex ringMutex;
+
+    mutable std::mutex ringMutex;
+
+    
+    std::map<NodeID, std::map<std::string, std::string>> replicas;
+
     RingMap::const_iterator successorOf(NodeID position) const;
+
     RingMap::const_iterator predecessorOf(NodeID nodeID) const;
 
-    static bool inRange(NodeID h, NodeID from, NodeID to);
+    static bool inRange(
+        NodeID h,
+        NodeID from,
+        NodeID to
+    );
+
+    void replicateKey(
+        const std::string& key,
+        const std::string& value
+    );
+
+    void rebuildReplicas();
 };
 
 #endif

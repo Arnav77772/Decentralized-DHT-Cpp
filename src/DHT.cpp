@@ -1,14 +1,20 @@
 
 #include "DHT.h"
+#include "Node.h"
 
 #include <iostream>
+#include <iterator>
+#include <utility>
 
-NodeID DHT::hashKey(const std::string& key)
+using namespace std;
+
+NodeID DHT::hashKey(const string& key)
 {
     return hashString(key);
 }
 
-DHT::RingMap::const_iterator DHT::successorOf(NodeID position) const{
+DHT::RingMap::const_iterator DHT::successorOf(NodeID position) const
+{
     if (ring.empty())
         return ring.end();
 
@@ -22,16 +28,15 @@ DHT::RingMap::const_iterator DHT::successorOf(NodeID position) const{
 
 DHT::RingMap::const_iterator DHT::predecessorOf(NodeID nodeID) const
 {
-    auto it = ring.find(nodeID);
-
-    if (it == ring.end() || ring.empty())
+    if (ring.empty())
         return ring.end();
 
-    if (it == ring.begin())
-        it = ring.end();
+    auto it = ring.lower_bound(nodeID);
 
-    --it;
-    return it;
+    if (it == ring.begin() || it == ring.end())
+        return prev(ring.end());
+
+    return prev(it);
 }
 
 bool DHT::inRange(NodeID h, NodeID from, NodeID to)
@@ -44,259 +49,468 @@ bool DHT::inRange(NodeID h, NodeID from, NodeID to)
 
     return true;
 }
-//addNode
+
 bool DHT::addNode(NodeID nodeID)
 {
+    lock_guard<mutex> lock(ringMutex);
+
     if (ring.find(nodeID) != ring.end())
     {
-        std::cout << "Node already exists.\n";
+        cout << "Node already exists.\n";
         return false;
     }
 
     if (ring.empty())
     {
-        ring.emplace(
-            nodeID,
-            std::unique_ptr<Node>(new Node(nodeID))
-        );
+        ring.emplace(nodeID, make_unique<Node>(nodeID));
+        rebuildReplicas();
 
-        std::cout << "Node " << nodeID << " joined the ring.\n";
+        cout << "Node " << nodeID << " joined the DHT.\n";
         return true;
     }
 
-    auto oldSuccessor = successorOf(nodeID);
-    auto predecessor = predecessorOf(oldSuccessor->first);
+    auto successor = successorOf(nodeID);
 
-    NodeID successorID = oldSuccessor->first;
+    if (successor == ring.end())
+        return false;
+
+    auto predecessor = predecessorOf(successor->first);
+
+    NodeID successorID = successor->first;
     NodeID predecessorID = predecessor->first;
 
-    ring.emplace(
-        nodeID,
-        std::unique_ptr<Node>(new Node(nodeID))
-    );
+    auto newNode = make_unique<Node>(nodeID);
 
-    std::vector<std::pair<std::string, std::string>> oldEntries =
-        ring.at(successorID)->entries();
-
-    std::size_t moved = 0;
+    vector<pair<string, string>> oldEntries =
+        successor->second->entries();
 
     for (const auto& entry : oldEntries)
+    {
+        NodeID keyID = hashKey(entry.first);
+
+        if (inRange(keyID, predecessorID, nodeID))
         {
-            NodeID position = hashKey(entry.first);
-            
-        if (inRange(position, predecessorID, nodeID))
-        {
-            ring.at(successorID)->erase(entry.first);
-            ring.at(nodeID)->store(entry.first, entry.second);
-            ++moved;
+            newNode->store(entry.first, entry.second);
+            successor->second->erase(entry.first);
         }
     }
 
-    std::cout << "Node " << nodeID << " joined the ring. "
-              << moved << " key(s) transferred.\n";
+    ring.emplace(nodeID, move(newNode));
 
+    rebuildReplicas();
+
+    cout << "Node " << nodeID << " joined the DHT.\n";
     return true;
 }
-//remove
+
 bool DHT::removeNode(NodeID nodeID)
 {
-    auto it = ring.find(nodeID);
+    lock_guard<mutex> lock(ringMutex);
 
-    if (it == ring.end())
+    auto nodeIt = ring.find(nodeID);
+
+    if (nodeIt == ring.end())
     {
-        std::cout << "Node not found.\n";
+        cout << "Node not found.\n";
         return false;
     }
 
-    if (ring.size() == 1 && it->second->dataCount() > 0)
+    if (ring.size() == 1)
     {
-        std::cout << "Cannot remove the last node while it holds data.\n";
-        return false;
+        if (nodeIt->second->dataCount() > 0)
+        {
+            cout << "Cannot remove the last node because it contains data.\n";
+            return false;
+        }
+
+        ring.erase(nodeIt);
+        replicas.clear();
+
+        cout << "Node " << nodeID << " left the DHT.\n";
+        return true;
     }
 
-    std::vector<std::pair<std::string, std::string>> oldEntries =
-        it->second->entries();
+    auto successor = next(nodeIt);
 
-    ring.erase(it);
+    if (successor == ring.end())
+        successor = ring.begin();
 
-    for (const auto& entry : oldEntries)
+
+        vector<pair<string, string>> entries =
+        nodeIt->second->entries();
+
+    for (const auto& entry : entries)
     {
-        auto destination = successorOf(hashKey(entry.first));
-
-        if (destination != ring.end())
-            destination->second->store(entry.first, entry.second);
+        successor->second->store(entry.first, entry.second);
     }
 
-    std::cout << "Node " << nodeID << " left the ring. "
-              << oldEntries.size() << " key(s) redistributed.\n";
+    ring.erase(nodeIt);
 
+    rebuildReplicas();
+
+    cout << "Node " << nodeID << " left the DHT.\n";
     return true;
 }
-//put
-void DHT::put(const std::string& key, const std::string& value)
-{
-    auto node = successorOf(hashKey(key));
 
-    if (node == ring.end())
+void DHT::put(const string& key, const string& value)
+{
+    lock_guard<mutex> lock(ringMutex);
+
+    if (ring.empty())
     {
-        std::cout << "Cannot PUT: no nodes in the DHT.\n";
+        cout << "No nodes available. Add a node first.\n";
         return;
     }
 
-    bool inserted = node->second->store(key, value);
+    NodeID keyID = hashKey(key);
+    auto owner = successorOf(keyID);
 
-    std::cout << (inserted ? "Key inserted" : "Key updated")
-              << " on node " << node->first << ".\n";
+    if (owner == ring.end())
+        return;
+
+    owner->second->store(key, value);
+
+    replicateKey(key, value);
+
+    cout << "Data stored successfully.\n";
+    cout << "Responsible node: " << owner->first << "\n";
 }
-//get
-void DHT::get(const std::string& key) const
+
+void DHT::get(const string& key) const
 {
-    auto node = successorOf(hashKey(key));
+    string value;
+    NodeID ownerID;
 
-    if (node == ring.end())
+    if (getValue(key, value, ownerID))
     {
-        std::cout << "Cannot GET: no nodes in the DHT.\n";
-        return;
-    }
-
-    std::string value;
-
-    if (node->second->fetch(key, value))
-    {
-        std::cout << "Key: " << key
-                  << ", Value: " << value
-                  << ", Node: " << node->first << '\n';
+        cout << "Key: " << key << "\n";
+        cout << "Value: " << value << "\n";
+        cout << "Stored at node: " << ownerID << "\n";
     }
     else
     {
-        std::cout << "Key not found: " << key << '\n';
+        cout << "Key not found.\n";
     }
 }
-//remove
-void DHT::remove(const std::string& key)
-{
-    auto node = successorOf(hashKey(key));
 
-    if (node == ring.end())
+void DHT::remove(const string& key)
+{
+    lock_guard<mutex> lock(ringMutex);
+
+    if (ring.empty())
     {
-        std::cout << "Cannot DELETE: no nodes in the DHT.\n";
+        cout << "No nodes available.\n";
         return;
     }
 
-    if (node->second->erase(key))
-        std::cout << "Key deleted from node " << node->first << ".\n";
+    NodeID keyID = hashKey(key);
+    auto owner = successorOf(keyID);
+
+    if (owner == ring.end())
+        return;
+
+    bool removed = owner->second->erase(key);
+
+    for (auto& replica : replicas)
+    {
+        replica.second.erase(key);
+    }
+
+    if (removed)
+        cout << "Data deleted successfully.\n";
     else
-        std::cout << "Key not found: " << key << '\n';
+        cout << "Key not found.\n";
 }
-//responsible nodes
-void DHT::showResponsibleNode(const std::string& key) const
-{
-    auto node = successorOf(hashKey(key));
 
-    if (node == ring.end())
+void DHT::showResponsibleNode(const string& key) const
+{
+    lock_guard<mutex> lock(ringMutex);
+
+    if (ring.empty())
     {
-        std::cout << "No nodes available in the DHT.\n";
+        cout << "No nodes available.\n";
         return;
     }
 
-    std::cout << "Key: " << key
-              << ", Hash position: " << hashKey(key)
-              << ", Responsible node: " << node->first << '\n';
+    NodeID keyID = hashKey(key);
+    auto owner = successorOf(keyID);
+
+    if (owner != ring.end())
+    {
+        cout << "Key: " << key << "\n";
+        cout << "Key hash: " << keyID << "\n";
+        cout << "Responsible node: " << owner->first << "\n";
+    }
 }
 
 void DHT::displayNodes() const
 {
+    lock_guard<mutex> lock(ringMutex);
+
     if (ring.empty())
     {
-        std::cout << "No nodes in the DHT.\n";
+        cout << "No nodes in the DHT.\n";
         return;
     }
 
-    std::cout << "Nodes in ring order:\n";
+    cout << "\n--- DHT Nodes ---\n";
 
-    for (const auto& entry : ring)
+    for (const auto& node : ring)
     {
-        std::cout << "Node ID: " << entry.first
-                  << ", Stored keys: " << entry.second->dataCount()
-                  << '\n';
+        cout << "Node ID: " << node.first
+             << " | Stored keys: " << node.second->dataCount()
+             << "\n";
     }
 }
 
 void DHT::displayData() const
 {
+    lock_guard<mutex> lock(ringMutex);
+
     if (ring.empty())
     {
-        std::cout << "No nodes or data in the DHT.\n";
+        cout << "No nodes available.\n";
         return;
     }
 
-    for (const auto& entry : ring)
+    cout << "\n--- DHT Data ---\n";
+
+    bool found = false;
+
+    for (const auto& node : ring)
     {
-        entry.second->displayData();
+        auto entries = node.second->entries();
+
+        for (const auto& entry : entries)
+        {
+            found = true;
+
+            cout << "Node: " << node.first
+                 << " | Key: " << entry.first
+                 << " | Value: " << entry.second
+                 << "\n";
+        }
     }
+
+    if (!found)
+        cout << "No data stored.\n";
 }
 
-std::size_t DHT::nodeCount() const
+size_t DHT::nodeCount() const
 {
+    lock_guard<mutex> lock(ringMutex);
     return ring.size();
 }
 
 bool DHT::getValue(
-    const std::string& key,
-    std::string& valueOut,
+    const string& key,
+    string& valueOut,
     NodeID& ownerOut
 ) const
 {
-    std::lock_guard<std::mutex> lock(ringMutex);
+    lock_guard<mutex> lock(ringMutex);
 
-    auto node = successorOf(hashKey(key));
-
-    if (node == ring.end())
+    if (ring.empty())
         return false;
 
-    if (!node->second->fetch(key, valueOut))
+    NodeID keyID = hashKey(key);
+    auto owner = successorOf(keyID);
+
+    if (owner == ring.end())
         return false;
 
-    ownerOut = node->first;
-    return true;
+    if (owner->second->fetch(key, valueOut))
+    {
+        ownerOut = owner->first;
+        return true;
+    }
+
+    return false;
 }
 
-std::vector<std::pair<NodeID, std::size_t>>
-DHT::nodesSnapshot() const
+vector<pair<NodeID, size_t>> DHT::nodesSnapshot() const
 {
-    std::lock_guard<std::mutex> lock(ringMutex);
+    lock_guard<mutex> lock(ringMutex);
 
-    std::vector<std::pair<NodeID, std::size_t>> result;
+    vector<pair<NodeID, size_t>> result;
 
-    for (const auto& entry : ring)
+    for (const auto& node : ring)
     {
         result.emplace_back(
-            entry.first,
-            entry.second->dataCount()
+            node.first,
+            node.second->dataCount()
         );
     }
 
     return result;
 }
 
-std::vector<std::tuple<std::string, std::string, NodeID>>
-DHT::dataSnapshot() const
+vector<tuple<string, string, NodeID>> DHT::dataSnapshot() const
 {
-    std::lock_guard<std::mutex> lock(ringMutex);
+    lock_guard<mutex> lock(ringMutex);
 
-    std::vector<std::tuple<std::string, std::string, NodeID>> result;
+    vector<tuple<string, string, NodeID>> result;
 
-    for (const auto& entry : ring)
+    for (const auto& node : ring)
     {
-        for (const auto& item : entry.second->entries())
+        auto entries = node.second->entries();
+
+        for (const auto& entry : entries)
         {
             result.emplace_back(
-                item.first,
-                item.second,
-                entry.first
+                entry.first,
+                entry.second,
+                node.first
             );
         }
     }
 
     return result;
+}
+
+void DHT::replicateKey(
+    const string& key,
+    const string& value
+)
+{
+    if (ring.size() < 2)
+        return;
+
+    NodeID keyID = hashKey(key);
+    auto primary = successorOf(keyID);
+
+    if (primary == ring.end())
+        return;
+
+    auto backup = next(primary);
+
+    if (backup == ring.end())
+        backup = ring.begin();
+
+    if (backup->first == primary->first)
+        return;
+
+    replicas[backup->first][key] = value;
+}
+
+void DHT::rebuildReplicas()
+{
+    replicas.clear();
+
+    if (ring.size() < 2)
+        return;
+
+    for (const auto& node : ring)
+    {
+        auto entries = node.second->entries();
+
+        for (const auto& entry : entries)
+        {
+            replicateKey(entry.first, entry.second);
+        }
+    }
+}
+
+void DHT::displayReplicas() const
+{
+    lock_guard<mutex> lock(ringMutex);
+
+    cout << "\n--- DHT Replica Data ---\n";
+
+    if (replicas.empty())
+    {
+        cout << "No replica data available.\n";
+        return;
+    }
+
+    bool found = false;
+
+    for (const auto& node : replicas)
+    {
+        for (const auto& entry : node.second)
+        {
+            found = true;
+
+            cout << "Backup Node: " << node.first
+                 << " | Key: " << entry.first
+                 << " | Value: " << entry.second
+                 << "\n";
+        }
+    }
+
+    if (!found)
+        cout << "No replica data available.\n";
+}
+
+
+bool DHT::simulateNodeFailure(NodeID nodeID)
+{
+    lock_guard<mutex> lock(ringMutex);
+
+    auto failedNode = ring.find(nodeID);
+
+    if (failedNode == ring.end())
+    {
+        cout << "Node not found.\n";
+        return false;
+    }
+
+    if (ring.size() < 2)
+    {
+        cout << "Failure simulation requires at least two nodes.\n";
+        cout << "No backup node is available for recovery.\n";
+        return false;
+    }
+
+    auto successor = next(failedNode);
+
+    if (successor == ring.end())
+        successor = ring.begin();
+
+    NodeID successorID = successor->first;
+
+    size_t expectedKeys = failedNode->second->dataCount();
+    size_t recoveredKeys = 0;
+
+    auto backupIt = replicas.find(successorID);
+
+    if (backupIt != replicas.end())
+    {
+        for (const auto& entry : backupIt->second)
+        {
+            NodeID keyID = hashKey(entry.first);
+            auto originalOwner = successorOf(keyID);
+
+            if (originalOwner != ring.end() &&
+                originalOwner->first == nodeID)
+            {
+                successor->second->store(entry.first, entry.second);
+                recoveredKeys++;
+            }
+        }
+    }
+
+    ring.erase(failedNode);
+
+    rebuildReplicas();
+
+    cout << "\n--- Node Failure Simulation ---\n";
+    cout << "Failed Node: " << nodeID << "\n";
+    cout << "Recovery Node: " << successorID << "\n";
+    cout << "Keys before failure: " << expectedKeys << "\n";
+    cout << "Keys recovered: " << recoveredKeys << "\n";
+
+    if (recoveredKeys == expectedKeys)
+    {
+        cout << "Recovery Status: SUCCESS\n";
+    }
+    else
+    {
+        cout << "Recovery Status: PARTIAL / DATA LOSS\n";
+        cout << "Some keys did not have available backup copies.\n";
+    }
+
+    cout << "Node " << nodeID << " has been removed from the ring.\n";
+
+    return recoveredKeys == expectedKeys;
 }

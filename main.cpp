@@ -67,7 +67,9 @@ void printMenu()
     cout << "6. DELETE\n";
     cout << "7. Display DHT data\n";
     cout << "8. Find responsible node for a key\n";
-    cout << "9. Exit\n";
+    cout << "9. Display Replicas\n";
+    cout << "10. Simulate Node Failure\n";
+    cout << "11. Exit\n";
 }
 
 
@@ -170,15 +172,25 @@ else
             break;
 
         case 9:
-            network.closeConnection();
-            cout << "Program ended.\n";
-            return 0;
-            dashboard.stop();
-            network.closeConnection();
+            dht.displayReplicas();
+            break;
 
-            cout << "Program ended.\n";
-            return 0;
+        case 10:
+            {
+                NodeID failedNode;
 
+                cout << "Enter Node ID to simulate failure: ";
+                cin >> failedNode;
+
+                dht.simulateNodeFailure(failedNode);
+                break;
+            }
+
+        case 11:
+                dashboard.stop();
+                network.closeConnection();
+                cout << "Program ended.\n";
+                return 0;
         default:
             cout << "Invalid choice.\n";
         }
